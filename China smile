@@ -1,0 +1,175 @@
+-- Smile Infection VIP GUI - LocalScript
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+
+-- ===== Notify =====
+local function notify(title, text)
+	StarterGui:SetCore("SendNotification", {
+		Title = title,
+		Text = text,
+		Duration = 3
+	})
+end
+
+notify("vip gui", "VIP已成功上传")
+task.wait(3)
+notify("vip gui", "发现一款笑容会传染的游戏")
+
+-- =====================================================
+-- ====================== GUI ==========================
+-- =====================================================
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "Smile_VIP_GUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.45, 0.3)
+frame.Position = UDim2.fromScale(0.275, 0.25)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,20)
+
+-- ===== Bar =====
+local BAR_HEIGHT = 48
+
+local bar = Instance.new("TextLabel", frame)
+bar.Size = UDim2.new(1,0,0,BAR_HEIGHT)
+bar.BackgroundColor3 = Color3.fromRGB(45,45,45)
+bar.Text = "vip gui"
+bar.TextColor3 = Color3.new(1,1,1)
+bar.Font = Enum.Font.GothamBold
+bar.TextSize = 22
+Instance.new("UICorner", bar).CornerRadius = UDim.new(0,20)
+
+-- ===== Container =====
+local container = Instance.new("Frame", frame)
+container.Position = UDim2.new(0,0,0,BAR_HEIGHT + 7)
+container.Size = UDim2.new(1,0,0,0)
+container.BackgroundTransparency = 1
+
+local pad = Instance.new("UIPadding", container)
+pad.PaddingTop = UDim.new(0,10)
+pad.PaddingLeft = UDim.new(0,16)
+pad.PaddingRight = UDim.new(0,16)
+
+local layout = Instance.new("UIListLayout", container)
+layout.Padding = UDim.new(0,12)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- ===== Auto resize (KHÔNG ĐÈ BAR) =====
+local function resize()
+	task.wait()
+	container.Size = UDim2.new(1,0,0,layout.AbsoluteContentSize.Y + 10)
+	frame.Size = UDim2.new(
+		frame.Size.X.Scale,
+		frame.Size.X.Offset,
+		0,
+		BAR_HEIGHT + 15 + container.Size.Y.Offset
+	)
+end
+resize()
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+
+-- ===== Button creator =====
+local function createButton(text, color)
+	local btn = Instance.new("TextButton", container)
+	btn.Size = UDim2.new(1,0,0,44)
+	btn.BackgroundColor3 = color
+	btn.Text = text
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 18
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,14)
+	return btn
+end
+
+-- =====================================================
+-- 🛡️ 阻止感染
+-- =====================================================
+local blockInfect = false
+
+local function clearInfection(character)
+	for _, v in ipairs(character:GetDescendants()) do
+		if v:IsA("BoolValue") and string.find(v.Name:lower(), "infect") then
+			v.Value = false
+		end
+	end
+
+	local hum = character:FindFirstChild("Humanoid")
+	if hum and hum:GetAttribute("Infected") ~= nil then
+		hum:SetAttribute("Infected", false)
+	end
+end
+
+local function enableBlockInfection()
+	if blockInfect then return end
+	blockInfect = true
+
+	local function onChar(char)
+		clearInfection(char)
+		char.DescendantAdded:Connect(function(v)
+			if blockInfect and v:IsA("BoolValue")
+			and string.find(v.Name:lower(), "infect") then
+				v.Value = false
+			end
+		end)
+	end
+
+	if player.Character then
+		onChar(player.Character)
+	end
+	player.CharacterAdded:Connect(onChar)
+end
+
+-- =====================================================
+-- ⚔️ 删除打击时间
+-- =====================================================
+local function removeCooldown(tool)
+	for _, v in ipairs(tool:GetDescendants()) do
+		if v:IsA("NumberValue") and (
+			string.find(v.Name:lower(), "cool") or
+			string.find(v.Name:lower(), "delay")
+		) then
+			v.Value = 0
+		end
+	end
+
+	for _, attr in ipairs({"Cooldown","AttackCooldown","Delay"}) do
+		if tool:GetAttribute(attr) ~= nil then
+			tool:SetAttribute(attr, 0)
+		end
+	end
+end
+
+local function enableNoCooldown()
+	local function scan(char)
+		for _, t in ipairs(char:GetChildren()) do
+			if t:IsA("Tool") then
+				removeCooldown(t)
+			end
+		end
+	end
+
+	if player.Character then
+		scan(player.Character)
+	end
+
+	player.CharacterAdded:Connect(function(char)
+		char.ChildAdded:Connect(function(c)
+			if c:IsA("Tool") then
+				task.wait()
+				removeCooldown(c)
+			end
+		end)
+	end)
+end
+
+-- ===== Buttons =====
+createButton("阻止感染", Color3.fromRGB(0,200,120))
+	.MouseButton1Click:Connect(enableBlockInfection)
+
+createButton("删除打击时间", Color3.fromRGB(255,120,120))
+	.MouseButton1Click:Connect(enableNoCooldown)
