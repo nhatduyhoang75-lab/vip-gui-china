@@ -1,0 +1,96 @@
+-- China GUI - LocalScript
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "ChinaGUI"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+-- Main Frame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 320, 0, 260)
+main.Position = UDim2.new(0.5, -160, 0.5, -130)
+main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+main.Active = true
+main.Draggable = true
+
+-- Bo góc
+local corner = Instance.new("UICorner", main)
+corner.CornerRadius = UDim.new(0, 14)
+
+-- Viền đỏ
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(255, 0, 0)
+stroke.Thickness = 2
+
+-- Thanh bar
+local bar = Instance.new("TextLabel", main)
+bar.Size = UDim2.new(1, 0, 0, 40)
+bar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+bar.Text = "China gui"
+bar.TextColor3 = Color3.fromRGB(255, 0, 0)
+bar.Font = Enum.Font.GothamBold
+bar.TextSize = 18
+
+local barCorner = Instance.new("UICorner", bar)
+barCorner.CornerRadius = UDim.new(0, 14)
+
+-- Container nút
+local holder = Instance.new("Frame", main)
+holder.Position = UDim2.new(0, 0, 0, 50)
+holder.Size = UDim2.new(1, 0, 1, -60)
+holder.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", holder)
+layout.Padding = UDim.new(0, 10)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Hàm tạo nút
+local function createButton(text)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0.9, 0, 0, 45)
+	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 14
+	btn.AutoButtonColor = true
+
+	local c = Instance.new("UICorner", btn)
+	c.CornerRadius = UDim.new(0, 12)
+
+	local s = Instance.new("UIStroke", btn)
+	s.Color = Color3.fromRGB(255, 0, 0)
+	s.Thickness = 1
+
+	btn.Parent = holder
+	return btn
+end
+
+-- Nút 1
+local btn1 = createButton("Escape from the tsunami to brainrot")
+btn1.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet(
+		"https://raw.githubusercontent.com/nhatduyhoang75-lab/vip-gui-china/refs/heads/main/China%20brainrot"
+	))()
+end)
+
+-- Nút 2
+local btn2 = createButton("Contagious smile")
+btn2.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet(
+		"https://raw.githubusercontent.com/nhatduyhoang75-lab/vip-gui-china/refs/heads/main/China%20smile"
+	))()
+end)
+
+-- Nút 3
+local btn3 = createButton("All games")
+btn3.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet(
+		"https://raw.githubusercontent.com/nhatduyhoang75-lab/vip-gui-china/refs/heads/main/NoGame"
+	))()
+end)
