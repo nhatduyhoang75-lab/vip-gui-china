@@ -1,0 +1,294 @@
+-- =====================================================
+-- GUI 2 - PLAYER / COMBAT
+-- =====================================================
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- =====================================================
+-- GUI BASE
+-- =====================================================
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "Player_Combat_GUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.42, 0.32)
+frame.Position = UDim2.fromScale(0.29, 0.24)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,20)
+
+-- Bar
+local BAR_HEIGHT = 46
+local bar = Instance.new("TextLabel", frame)
+bar.Size = UDim2.new(1,0,0,BAR_HEIGHT)
+bar.BackgroundColor3 = Color3.fromRGB(45,45,45)
+bar.Text = "player gui"
+bar.TextColor3 = Color3.new(1,1,1)
+bar.Font = Enum.Font.GothamBold
+bar.TextSize = 22
+Instance.new("UICorner", bar).CornerRadius = UDim.new(0,20)
+
+-- Container
+local container = Instance.new("Frame", frame)
+container.Position = UDim2.new(0,0,0,BAR_HEIGHT + 6)
+container.Size = UDim2.new(1,0,0,0)
+container.BackgroundTransparency = 1
+
+local pad = Instance.new("UIPadding", container)
+pad.PaddingTop = UDim.new(0,10)
+pad.PaddingLeft = UDim.new(0,16)
+pad.PaddingRight = UDim.new(0,16)
+
+local layout = Instance.new("UIListLayout", container)
+layout.Padding = UDim.new(0,12)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function resize()
+	task.wait()
+	container.Size = UDim2.new(1,0,0,layout.AbsoluteContentSize.Y)
+	frame.Size = UDim2.new(
+		frame.Size.X.Scale,
+		frame.Size.X.Offset,
+		0,
+		BAR_HEIGHT + container.Size.Y.Offset + 18
+	)
+end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+
+local function createButton(text, color)
+	local btn = Instance.new("TextButton", container)
+	btn.Size = UDim2.new(1,0,0,44)
+	btn.BackgroundColor3 = color
+	btn.Text = text
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 18
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,14)
+	return btn
+end
+
+-- =====================================================
+-- 标记玩家 (ESP)
+-- =====================================================
+local espOn = false
+local espFolder = Instance.new("Folder", game.CoreGui)
+espFolder.Name = "ESP_Players"
+
+local function addESP(plr)
+	if plr == player or not plr.Character then return end
+	if espFolder:FindFirstChild(plr.Name) then return end
+
+	local hl = Instance.new("Highlight")
+	hl.Name = plr.Name
+	hl.FillColor = Color3.fromRGB(255,0,0)
+	hl.FillTransparency = 0.5
+	hl.OutlineTransparency = 0
+	hl.Adornee = plr.Character
+	hl.Parent = espFolder
+end
+
+local espBtn = createButton("标记玩家", Color3.fromRGB(200,60,60))
+espBtn.MouseButton1Click:Connect(function()
+	espOn = not espOn
+	if espOn then
+		for _, p in ipairs(Players:GetPlayers()) do addESP(p) end
+	else
+		espFolder:ClearAllChildren()
+	end
+end)
+
+Players.PlayerAdded:Connect(function(p)
+	p.CharacterAdded:Connect(function()
+		if espOn then task.wait(0.5); addESP(p) end
+	end)
+end)
+
+-- =====================================================
+-- 穿过墙壁 (Noclip)
+-- =====================================================
+local noclip = false
+
+local function setNoclip(char, state)
+	for _, v in ipairs(char:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.CanCollide = not state
+		end
+	end
+end
+
+createButton("穿过墙壁", Color3.fromRGB(150,150,255))
+.MouseButton1Click:Connect(function()
+	noclip = not noclip
+	if player.Character then
+		setNoclip(player.Character, noclip)
+	end
+end)
+
+RunService.Stepped:Connect(function()
+	if noclip and player.Character then
+		setNoclip(player.Character, true)
+	end
+end)
+
+-- =====================================================
+-- 湾 (Fly mobile - joystick)
+-- =====================================================
+local fly = false
+local flySpeed = 60
+local bodyVel, bodyGyro, root
+
+local function startFly()
+	local char = player.Character
+	if not char then return end
+	root = char:WaitForChild("HumanoidRootPart")
+
+	bodyVel = Instance.new("BodyVelocity", root)
+	bodyVel.MaxForce = Vector3.new(1e9,1e9,1e9)
+
+	bodyGyro = Instance.new("BodyGyro", root)
+	bodyGyro.MaxTorque = Vector3.new(1e9,1e9,1e9)
+end
+
+local function stopFly()
+	if bodyVel then bodyVel:Destroy() end
+	if bodyGyro then bodyGyro:Destroy() end
+end
+
+createButton("湾", Color3.fromRGB(255,180,60))
+.MouseButton1Click:Connect(function()
+	fly = not fly
+	if fly then startFly() else stopFly() end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if fly and root and bodyVel and bodyGyro then
+		local hum = player.Character:FindFirstChild("Humanoid")
+		bodyGyro.CFrame = Camera.CFrame
+		if hum then
+			bodyVel.Velocity =
+				(Camera.CFrame.LookVector * hum.MoveDirection.Z +
+				Camera.CFrame.RightVector * hum.MoveDirection.X) * flySpeed
+		end
+	end
+end)
+
+-- =====================================================
+-- 自动瞄准器指南 (Aimbot GUI)
+-- =====================================================
+local aimBtn = createButton("自动瞄准器指南", Color3.fromRGB(180,80,255))
+
+-- Aim GUI
+local aimGui = Instance.new("Frame", gui)
+aimGui.Size = UDim2.fromScale(0.3, 0.22)
+aimGui.Position = UDim2.fromScale(0.35, 0.6)
+aimGui.BackgroundColor3 = Color3.fromRGB(30,30,30)
+aimGui.Visible = false
+aimGui.Active = true
+aimGui.Draggable = true
+Instance.new("UICorner", aimGui).CornerRadius = UDim.new(0,18)
+
+local aimBar = Instance.new("TextLabel", aimGui)
+aimBar.Size = UDim2.new(1,0,0,40)
+aimBar.BackgroundColor3 = Color3.fromRGB(45,45,45)
+aimBar.Text = "自动瞄准"
+aimBar.TextColor3 = Color3.new(1,1,1)
+aimBar.Font = Enum.Font.GothamBold
+aimBar.TextSize = 20
+Instance.new("UICorner", aimBar).CornerRadius = UDim.new(0,18)
+
+local aimContainer = Instance.new("Frame", aimGui)
+aimContainer.Position = UDim2.new(0,0,0,48)
+aimContainer.Size = UDim2.new(1,0,1,-48)
+aimContainer.BackgroundTransparency = 1
+
+local aimLayout = Instance.new("UIListLayout", aimContainer)
+aimLayout.Padding = UDim.new(0,10)
+aimLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local aimPad = Instance.new("UIPadding", aimContainer)
+aimPad.PaddingTop = UDim.new(0,8)
+aimPad.PaddingLeft = UDim.new(0,14)
+aimPad.PaddingRight = UDim.new(0,14)
+
+local aimOn = false
+local radius = 120
+
+local aimToggle = Instance.new("TextButton", aimContainer)
+aimToggle.Size = UDim2.new(1,0,0,40)
+aimToggle.Text = "自瞄 : OFF"
+aimToggle.BackgroundColor3 = Color3.fromRGB(120,120,120)
+aimToggle.TextColor3 = Color3.new(1,1,1)
+aimToggle.Font = Enum.Font.GothamBold
+aimToggle.TextSize = 18
+Instance.new("UICorner", aimToggle).CornerRadius = UDim.new(0,14)
+
+aimToggle.MouseButton1Click:Connect(function()
+	aimOn = not aimOn
+	aimToggle.Text = aimOn and "自瞄 : ON" or "自瞄 : OFF"
+end)
+
+local box = Instance.new("TextBox", aimContainer)
+box.Size = UDim2.new(1,0,0,38)
+box.PlaceholderText = "艾博特宽度..."
+box.Text = tostring(radius)
+box.BackgroundColor3 = Color3.fromRGB(50,50,50)
+box.TextColor3 = Color3.new(1,1,1)
+box.Font = Enum.Font.Gotham
+box.TextSize = 16
+Instance.new("UICorner", box).CornerRadius = UDim.new(0,12)
+
+box.FocusLost:Connect(function()
+	local v = tonumber(box.Text)
+	if v then radius = math.clamp(v, 30, 600) end
+end)
+
+local circle = Drawing.new("Circle")
+circle.Color = Color3.fromRGB(255,0,0)
+circle.Thickness = 2
+circle.Filled = false
+
+local function getTarget()
+	local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+	local closest, dist = nil, radius
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = p.Character.HumanoidRootPart
+			local hum = p.Character:FindFirstChild("Humanoid")
+			if hum and hum.Health > 0 then
+				local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+				if onScreen then
+					local d = (Vector2.new(pos.X,pos.Y) - center).Magnitude
+					if d < dist then
+						dist = d
+						closest = hrp
+					end
+				end
+			end
+		end
+	end
+	return closest
+end
+
+RunService.RenderStepped:Connect(function()
+	circle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+	circle.Radius = radius
+	circle.Visible = aimOn
+
+	if aimOn then
+		local target = getTarget()
+		if target then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+		end
+	end
+end)
+
+aimBtn.MouseButton1Click:Connect(function()
+	aimGui.Visible = not aimGui.Visible
+end)
