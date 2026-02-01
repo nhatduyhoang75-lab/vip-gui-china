@@ -1,0 +1,76 @@
+-- ===== GUI =====
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "VIP_GUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.45, 0.3) -- chiều cao sẽ auto
+frame.Position = UDim2.fromScale(0.275, 0.25)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,20)
+
+-- ===== BAR =====
+local BAR_HEIGHT = 48
+
+local bar = Instance.new("TextLabel", frame)
+bar.Size = UDim2.new(1,0,0,BAR_HEIGHT)
+bar.Position = UDim2.new(0,0,0,0)
+bar.BackgroundColor3 = Color3.fromRGB(45,45,45)
+bar.Text = "vip gui"
+bar.TextColor3 = Color3.new(1,1,1)
+bar.Font = Enum.Font.GothamBold
+bar.TextSize = 22
+Instance.new("UICorner", bar).CornerRadius = UDim.new(0,20)
+
+-- ===== CONTAINER (chứa button) =====
+local container = Instance.new("Frame", frame)
+container.Position = UDim2.new(0,0,0,BAR_HEIGHT + 7)
+container.Size = UDim2.new(1,0,0,0)
+container.BackgroundTransparency = 1
+
+local pad = Instance.new("UIPadding", container)
+pad.PaddingTop = UDim.new(0,10)
+pad.PaddingLeft = UDim.new(0,16)
+pad.PaddingRight = UDim.new(0,16)
+
+local layout = Instance.new("UIListLayout", container)
+layout.Padding = UDim.new(0,12)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- ===== AUTO RESIZE (KHÔNG ĐÈ BAR) =====
+local function resize()
+	task.wait()
+	container.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y + 10)
+
+	frame.Size = UDim2.new(
+		frame.Size.X.Scale,
+		frame.Size.X.Offset,
+		0,
+		BAR_HEIGHT + 15 + container.Size.Y.Offset
+	)
+end
+
+resize()
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+
+-- ===== TẠO BUTTON =====
+local function createButton(text, color)
+	local btn = Instance.new("TextButton", container)
+	btn.Size = UDim2.new(1,0,0,44)
+	btn.BackgroundColor3 = color
+	btn.Text = text
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 18
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,14)
+	return btn
+end
+
+-- ===== 4 BUTTON =====
+createButton("解锁VIP墙", Color3.fromRGB(0,170,255))
+createButton("解锁第二个网络", Color3.fromRGB(0,200,120))
+createButton("抢劫无需等待", Color3.fromRGB(255,140,0))
+createButton("保留转移", Color3.fromRGB(170,85,255))
