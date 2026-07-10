@@ -1,4 +1,4 @@
--- [[ VINYSOUA SCRIPT V20 - BẢN ĐẦY ĐỦ KHÔNG THIẾU MỘT CHI TIẾT ]]
+-- [[ VINYSOUA SCRIPT V21 - THÊM TOGGLE AUTO KEY ]]
 script_key = "VinysouaOnTop" 
 if not script_key or script_key ~= "VinysouaOnTop" then
     local Players = game:GetService("Players")
@@ -14,15 +14,25 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
-local activeStates = {AntiKick = false, AntiFall = false, Noclip = false, Cspeed = false, TpWalk = false, WalkSpeedLoop = false, AntiSlide = false}
+-- Khởi tạo trạng thái cho AutoKey trong bảng activeStates
+local activeStates = {
+    AntiKick = false, 
+    AntiFall = false, 
+    Noclip = false, 
+    Cspeed = false, 
+    TpWalk = false, 
+    WalkSpeedLoop = false, 
+    AntiSlide = false,
+    AutoKey = false
+}
 local speedValue = 16
 local isMinimized = false
 local currentTween = nil
-local bv = nil -- Biến lưu BodyVelocity cho Anti-Fall V15 ngon lành
+local bv = nil 
 
 -- [[ GUI SETUP ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VinysouaGUI_V20_Final"
+ScreenGui.Name = "VinysouaGUI_V21"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = gethui and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 
@@ -68,7 +78,7 @@ Scroll.Size = UDim2.new(1, 0, 1, -38)
 Scroll.Position = UDim2.new(0, 0, 0, 38)
 Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 440)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 480) -- Tăng một chút độ dài danh sách cuộn để vừa nút mới
 Scroll.ScrollBarThickness = 3
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 100)
 
@@ -87,7 +97,7 @@ SpeedBox.TextColor3 = Color3.fromRGB(0, 255, 100)
 Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
 SpeedBox:GetPropertyChangedSignal("Text"):Connect(function() speedValue = tonumber(SpeedBox.Text) or 16 end)
 
--- [[ HÀM CẬP NHẬT PHẬT LÝ MA SÁT CHO ANTI SLIDE ]]
+-- [[ HÀM CẬP NHẬT VẬT LÝ MA SÁT CHO ANTI SLIDE ]]
 local function updateSlidePhysical(char, forceApply)
     if not char then return end
     local hum = char:FindFirstChildOfClass("Humanoid")
@@ -127,8 +137,9 @@ createToggle("Cspeed", "Cspeed")
 createToggle("TpWalk", "TpWalk")
 createToggle("WalkSpeedLoop", "WalkSpeed")
 createToggle("AntiSlide", "Anti Slide")
+createToggle("AutoKey", "Auto Key ✨") -- Nút mới xịn sò đây nha
 
--- [[ ĐÂY RỒI! 2 NÚT BOOST BỊ THIẾU ĐÃ QUAY TRỞ LẠI ]]
+-- [[ 2 NÚT BOOST Y (+10 / -10) ]]
 local function createBoostBtn(text, y)
     local btn = Instance.new("TextButton", Scroll)
     btn.Size = UDim2.new(0.9, 0, 0, 32)
@@ -215,6 +226,34 @@ RunService.Heartbeat:Connect(function()
         end
     else
         if bv then bv:Destroy(); bv = nil end
+    end
+    
+    -- LOGIC AUTO KEY: Tìm kiếm và dịch chuyển đến vật phẩm chứa chữ "key"
+    if activeStates.AutoKey then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            -- Thỏa mãn là vật thể sờ mó được (BasePart) hoặc Model/Tool có tên chứa chữ "key"
+            if string.find(string.lower(obj.Name), "key") then
+                local targetCFrame = nil
+                
+                if obj:IsA("BasePart") then
+                    targetCFrame = obj.CFrame
+                elseif obj:IsA("Model") or obj:IsA("Tool") then
+                    -- Ưu tiên tìm gốc PrimaryPart, nếu không có thì lấy Part đầu tiên bên trong nó
+                    if obj.PrimaryPart then
+                        targetCFrame = obj.PrimaryPart.CFrame
+                    else
+                        local subPart = obj:FindFirstChildWhichIsA("BasePart", true)
+                        if subPart then targetCFrame = subPart.CFrame end
+                    end
+                end
+                
+                -- Thực hiện Teleport ngay khi định vị được vị trí
+                if targetCFrame then
+                    hrp.CFrame = targetCFrame + Vector3.new(0, 2, 0) -- Dịch chuyển cao lên 2 studs tránh bị kẹt xuống đất
+                    break -- Thoát vòng lặp quét của frame này để nhân vật đứng yên tại vị trí khóa mục tiêu
+                end
+            end
+        end
     end
     
     -- Xử lý tốc độ và đi xuyên tường
