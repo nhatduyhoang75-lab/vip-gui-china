@@ -1,4 +1,4 @@
--- [[ VINYSOUA SCRIPT V21 - THÊM TOGGLE AUTO KEY ]]
+-- [[ VINYSOUA SCRIPT V22 - FIX LỖI KEYBOARD ]]
 script_key = "VinysouaOnTop" 
 if not script_key or script_key ~= "VinysouaOnTop" then
     local Players = game:GetService("Players")
@@ -14,7 +14,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
--- Khởi tạo trạng thái cho AutoKey trong bảng activeStates
 local activeStates = {
     AntiKick = false, 
     AntiFall = false, 
@@ -32,7 +31,7 @@ local bv = nil
 
 -- [[ GUI SETUP ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VinysouaGUI_V21"
+ScreenGui.Name = "VinysouaGUI_V22"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = gethui and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 
@@ -78,7 +77,7 @@ Scroll.Size = UDim2.new(1, 0, 1, -38)
 Scroll.Position = UDim2.new(0, 0, 0, 38)
 Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 480) -- Tăng một chút độ dài danh sách cuộn để vừa nút mới
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 480)
 Scroll.ScrollBarThickness = 3
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 100)
 
@@ -137,7 +136,7 @@ createToggle("Cspeed", "Cspeed")
 createToggle("TpWalk", "TpWalk")
 createToggle("WalkSpeedLoop", "WalkSpeed")
 createToggle("AntiSlide", "Anti Slide")
-createToggle("AutoKey", "Auto Key ✨") -- Nút mới xịn sò đây nha
+createToggle("AutoKey", "Auto Key ✨")
 
 -- [[ 2 NÚT BOOST Y (+10 / -10) ]]
 local function createBoostBtn(text, y)
@@ -195,7 +194,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     MinimizeBtn.Text = isMinimized and "+" or "-"
 end)
 
--- [[ AUTO REFRESH KHI HỒI SINH (CHẾT ĐI LẠI NGON) ]]
+-- [[ AUTO REFRESH KHI HỒI SINH ]]
 local function setupCharacter(char)
     updateSlidePhysical(char, activeStates.AntiSlide)
     local hum = char:WaitForChild("Humanoid", 10)
@@ -216,7 +215,7 @@ RunService.Heartbeat:Connect(function()
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hrp or not hum then return end
     
-    -- Anti Fall V15 (Dùng BodyVelocity gốc siêu chặt, đứng im re)
+    -- Anti Fall V15
     if activeStates.AntiFall then
         if not bv or bv.Parent ~= hrp then
             bv = Instance.new("BodyVelocity")
@@ -228,17 +227,22 @@ RunService.Heartbeat:Connect(function()
         if bv then bv:Destroy(); bv = nil end
     end
     
-    -- LOGIC AUTO KEY: Tìm kiếm và dịch chuyển đến vật phẩm chứa chữ "key"
+    -- LOGIC AUTO KEY THÔNG MINH (ĐÃ FIX LỖI KEYBOARD)
     if activeStates.AutoKey then
         for _, obj in pairs(workspace:GetDescendants()) do
-            -- Thỏa mãn là vật thể sờ mó được (BasePart) hoặc Model/Tool có tên chứa chữ "key"
-            if string.find(string.lower(obj.Name), "key") then
-                local targetCFrame = nil
+            local nameLower = string.lower(obj.Name)
+            
+            -- Chứa chữ "key" NHƯNG phải loại trừ "keyboard", "keypad", "keyhole", "keybind"
+            if string.find(nameLower, "key") 
+               and not string.find(nameLower, "keyboard") 
+               and not string.find(nameLower, "keypad")
+               and not string.find(nameLower, "keyhole")
+               and not string.find(nameLower, "keybind") then
                 
+                local targetCFrame = nil
                 if obj:IsA("BasePart") then
                     targetCFrame = obj.CFrame
                 elseif obj:IsA("Model") or obj:IsA("Tool") then
-                    -- Ưu tiên tìm gốc PrimaryPart, nếu không có thì lấy Part đầu tiên bên trong nó
                     if obj.PrimaryPart then
                         targetCFrame = obj.PrimaryPart.CFrame
                     else
@@ -247,10 +251,9 @@ RunService.Heartbeat:Connect(function()
                     end
                 end
                 
-                -- Thực hiện Teleport ngay khi định vị được vị trí
                 if targetCFrame then
-                    hrp.CFrame = targetCFrame + Vector3.new(0, 2, 0) -- Dịch chuyển cao lên 2 studs tránh bị kẹt xuống đất
-                    break -- Thoát vòng lặp quét của frame này để nhân vật đứng yên tại vị trí khóa mục tiêu
+                    hrp.CFrame = targetCFrame + Vector3.new(0, 2, 0)
+                    break 
                 end
             end
         end
@@ -267,7 +270,7 @@ RunService.Heartbeat:Connect(function()
     if activeStates.TpWalk and hum.MoveDirection.Magnitude > 0 then hrp.CFrame += (hum.MoveDirection * (speedValue / 45)) end
 end)
 
--- [[ BYPASS ANTI KICK TOÀN DIỆN (__NAMECALL & __INDEX) ]]
+-- [[ BYPASS ANTI KICK TOÀN DIỆN ]]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 local oldIndex = mt.__index
