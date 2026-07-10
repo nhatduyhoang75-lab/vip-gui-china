@@ -1,4 +1,4 @@
--- [[ CẤU HÌNH HỆ THỐNG KEY ]]
+-- [[ VINYSOUA SCRIPT V20 - BẢN ĐẦY ĐỦ KHÔNG THIẾU MỘT CHI TIẾT ]]
 script_key = "VinysouaOnTop" 
 if not script_key or script_key ~= "VinysouaOnTop" then
     local Players = game:GetService("Players")
@@ -18,11 +18,11 @@ local activeStates = {AntiKick = false, AntiFall = false, Noclip = false, Cspeed
 local speedValue = 16
 local isMinimized = false
 local currentTween = nil
-local lastHrpY = 0
+local bv = nil -- Biến lưu BodyVelocity cho Anti-Fall V15 ngon lành
 
 -- [[ GUI SETUP ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VinysouaGUI_V19"
+ScreenGui.Name = "VinysouaGUI_V20_Final"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = gethui and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 
@@ -76,7 +76,7 @@ local UIListLayout = Instance.new("UIListLayout", Scroll)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.Padding = UDim.new(0, 6)
 
--- Input Tốc độ
+-- Ô nhập tốc độ (Speed Input)
 local SpeedBox = Instance.new("TextBox", Scroll)
 SpeedBox.Size = UDim2.new(0.9, 0, 0, 32)
 SpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -87,7 +87,7 @@ SpeedBox.TextColor3 = Color3.fromRGB(0, 255, 100)
 Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
 SpeedBox:GetPropertyChangedSignal("Text"):Connect(function() speedValue = tonumber(SpeedBox.Text) or 16 end)
 
--- Hàm cập nhật lực ma sát vật lý cho Anti Slide nhanh
+-- [[ HÀM CẬP NHẬT PHẬT LÝ MA SÁT CHO ANTI SLIDE ]]
 local function updateSlidePhysical(char, forceApply)
     if not char then return end
     local hum = char:FindFirstChildOfClass("Humanoid")
@@ -98,7 +98,7 @@ local function updateSlidePhysical(char, forceApply)
     end
 end
 
--- Hàm tạo nút Toggle thường
+-- Hàm tạo các nút Toggle bật tắt liên tục
 local function createToggle(name, text)
     local btn = Instance.new("TextButton", Scroll)
     btn.Size = UDim2.new(0.9, 0, 0, 32)
@@ -114,11 +114,6 @@ local function createToggle(name, text)
         btn.Text = text .. (activeStates[name] and ": ON" or ": OFF")
         btn.TextColor3 = activeStates[name] and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 80, 80)
         
-        if name == "AntiFall" and activeStates.AntiFall then
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then lastHrpY = hrp.Position.Y end
-        end
-
         if name == "AntiSlide" then
             updateSlidePhysical(LocalPlayer.Character, activeStates.AntiSlide)
         end
@@ -133,7 +128,7 @@ createToggle("TpWalk", "TpWalk")
 createToggle("WalkSpeedLoop", "WalkSpeed")
 createToggle("AntiSlide", "Anti Slide")
 
--- Hàm tạo nút Boost
+-- [[ ĐÂY RỒI! 2 NÚT BOOST BỊ THIẾU ĐÃ QUAY TRỞ LẠI ]]
 local function createBoostBtn(text, y)
     local btn = Instance.new("TextButton", Scroll)
     btn.Size = UDim2.new(0.9, 0, 0, 32)
@@ -149,22 +144,24 @@ local function createBoostBtn(text, y)
     stroke.Thickness = 1
 
     btn.MouseButton1Click:Connect(function()
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
         if not hrp or not hum then return end
+        
         local dur = 10 / (hum.WalkSpeed > 0 and hum.WalkSpeed or 16)
         hum.PlatformStand = true
         currentTween = TweenService:Create(hrp, TweenInfo.new(dur), {CFrame = hrp.CFrame + Vector3.new(0, y, 0)})
         currentTween:Play()
         currentTween.Completed:Wait()
         hum.PlatformStand = false
-        if activeStates.AntiFall then lastHrpY = hrp.Position.Y end
+        currentTween = nil
     end)
 end
 createBoostBtn("Boost ⬆️ (+10 Y)", 10)
 createBoostBtn("Boost ⬇️ (-10 Y)", -10)
 
--- [[ HỆ THỐNG KÉO THẢ ]]
+-- [[ HỆ THỐNG KÉO THẢ DI CHUYỂN MENU ]]
 local dragging, dragInput, dragStart, startPos
 local function update(input)
     local delta = input.Position - dragStart
@@ -179,56 +176,7 @@ end)
 TitleFrame.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
 UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then update(input) end end)
 
--- [[ KHÔI PHỤC CHỨC NĂNG SAU KHI CHẾT ]]
-local function setupCharacter(char)
-    local hum = char:WaitForChild("Humanoid", 10)
-    local hrp = char:WaitForChild("HumanoidRootPart", 10)
-    if not hum or not hrp then return end
-
-    if activeStates.AntiFall then lastHrpY = hrp.Position.Y end
-    updateSlidePhysical(char, activeStates.AntiSlide)
-
-    hum.StateChanged:Connect(function(_, new)
-        updateSlidePhysical(char, activeStates.AntiSlide)
-    end)
-end
-
-if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
-LocalPlayer.CharacterAdded:Connect(setupCharacter)
-
--- [[ LOGIC VÒNG LẶP CHẠY NGẦM ]]
-RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-    
-    if activeStates.WalkSpeedLoop then hum.WalkSpeed = speedValue end
-    if activeStates.Noclip then
-        for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
-    end
-    
-    -- Tăng khoảng cách kiểm tra địa hình để tránh lỗi khựng dốc cao
-    if activeStates.AntiFall and not currentTween then
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {char}
-        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-        
-        local rayResult = workspace:Raycast(hrp.Position, Vector3.new(0, -25, 0), raycastParams)
-        
-        if rayResult then
-            lastHrpY = hrp.Position.Y
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, hrp.Velocity.Y, hrp.Velocity.Z)
-        else
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
-            hrp.CFrame = CFrame.new(hrp.Position.X, lastHrpY, hrp.Position.Z)
-        end
-    end
-
-    if activeStates.Cspeed and hum.MoveDirection.Magnitude > 0 then hrp.CFrame += (hum.MoveDirection * (speedValue / 30)) end
-    if activeStates.TpWalk and hum.MoveDirection.Magnitude > 0 then hrp.CFrame += (hum.MoveDirection * (speedValue / 45)) end
-end)
-
+-- Nút Thu Nhỏ GUI (-)
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     Scroll.Visible = not isMinimized
@@ -236,7 +184,51 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     MinimizeBtn.Text = isMinimized and "+" or "-"
 end)
 
--- [[ BYPASS ANTI KICK ]]
+-- [[ AUTO REFRESH KHI HỒI SINH (CHẾT ĐI LẠI NGON) ]]
+local function setupCharacter(char)
+    updateSlidePhysical(char, activeStates.AntiSlide)
+    local hum = char:WaitForChild("Humanoid", 10)
+    if hum then
+        hum.StateChanged:Connect(function() 
+            updateSlidePhysical(char, activeStates.AntiSlide) 
+        end)
+    end
+end
+
+if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
+LocalPlayer.CharacterAdded:Connect(setupCharacter)
+
+-- [[ VÒNG LẶP CHẠY NGẦM LOGIC (HEARTBEAT) ]]
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    
+    -- Anti Fall V15 (Dùng BodyVelocity gốc siêu chặt, đứng im re)
+    if activeStates.AntiFall then
+        if not bv or bv.Parent ~= hrp then
+            bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(0, math.huge, 0)
+            bv.Velocity = Vector3.new(0, 0, 0)
+            bv.Parent = hrp
+        end
+    else
+        if bv then bv:Destroy(); bv = nil end
+    end
+    
+    -- Xử lý tốc độ và đi xuyên tường
+    if activeStates.WalkSpeedLoop then hum.WalkSpeed = speedValue end
+    if activeStates.Noclip then
+        for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+    end
+    
+    -- Các chế độ chạy nhanh nâng cao
+    if activeStates.Cspeed and hum.MoveDirection.Magnitude > 0 then hrp.CFrame += (hum.MoveDirection * (speedValue / 30)) end
+    if activeStates.TpWalk and hum.MoveDirection.Magnitude > 0 then hrp.CFrame += (hum.MoveDirection * (speedValue / 45)) end
+end)
+
+-- [[ BYPASS ANTI KICK TOÀN DIỆN (__NAMECALL & __INDEX) ]]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 local oldIndex = mt.__index
