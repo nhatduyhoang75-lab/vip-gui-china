@@ -1,4 +1,4 @@
--- [[ VINYSOUA SCRIPT V22 - FIX LỖI KEYBOARD ]]
+-- [[ VINYSOUA SCRIPT V25 - THÊM TOGGLE LOW GRAVITY ]]
 script_key = "VinysouaOnTop" 
 if not script_key or script_key ~= "VinysouaOnTop" then
     local Players = game:GetService("Players")
@@ -22,7 +22,8 @@ local activeStates = {
     TpWalk = false, 
     WalkSpeedLoop = false, 
     AntiSlide = false,
-    AutoKey = false
+    AutoKey = false,
+    LowGravity = false -- Thêm trạng thái cho Low Gravity
 }
 local speedValue = 16
 local isMinimized = false
@@ -31,7 +32,7 @@ local bv = nil
 
 -- [[ GUI SETUP ]]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VinysouaGUI_V22"
+ScreenGui.Name = "VinysouaGUI_V25"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = gethui and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 
@@ -77,7 +78,7 @@ Scroll.Size = UDim2.new(1, 0, 1, -38)
 Scroll.Position = UDim2.new(0, 0, 0, 38)
 Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 480)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 520) -- Tăng thêm diện tích cuộn để vừa khít nút mới
 Scroll.ScrollBarThickness = 3
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 100)
 
@@ -125,6 +126,9 @@ local function createToggle(name, text)
         
         if name == "AntiSlide" then
             updateSlidePhysical(LocalPlayer.Character, activeStates.AntiSlide)
+        elseif name == "LowGravity" and not activeStates.LowGravity then
+            -- Khi tắt ngang, trả lại trọng lực mặc định ngay lập tức cho đỡ trễ
+            workspace.Gravity = 196.2
         end
     end)
 end
@@ -137,6 +141,7 @@ createToggle("TpWalk", "TpWalk")
 createToggle("WalkSpeedLoop", "WalkSpeed")
 createToggle("AntiSlide", "Anti Slide")
 createToggle("AutoKey", "Auto Key ✨")
+createToggle("LowGravity", "Low Gravity ☁️") -- Nút bấm Low Gravity mới nằm ở đây
 
 -- [[ 2 NÚT BOOST Y (+10 / -10) ]]
 local function createBoostBtn(text, y)
@@ -227,12 +232,15 @@ RunService.Heartbeat:Connect(function()
         if bv then bv:Destroy(); bv = nil end
     end
     
-    -- LOGIC AUTO KEY THÔNG MINH (ĐÃ FIX LỖI KEYBOARD)
+    -- LOGIC LOW GRAVITY: Khóa cứng trọng lực map bằng 5 khi bật
+    if activeStates.LowGravity then
+        workspace.Gravity = 5
+    end
+    
+    -- LOGIC AUTO KEY THÔNG MINH
     if activeStates.AutoKey then
         for _, obj in pairs(workspace:GetDescendants()) do
             local nameLower = string.lower(obj.Name)
-            
-            -- Chứa chữ "key" NHƯNG phải loại trừ "keyboard", "keypad", "keyhole", "keybind"
             if string.find(nameLower, "key") 
                and not string.find(nameLower, "keyboard") 
                and not string.find(nameLower, "keypad")
